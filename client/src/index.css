@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* GRAY PALETTE (Standard) */
+    --color-gray-50: 249 250 251;
+    --color-gray-100: 243 244 246;
+    --color-gray-200: 229 231 235;
+    --color-gray-300: 209 213 219;
+    --color-gray-400: 156 163 175;
+    --color-gray-500: 107 114 128;
+    --color-gray-600: 75 85 99;
+    --color-gray-700: 55 65 81;
+    --color-gray-800: 31 41 55;
+    --color-gray-900: 17 24 39;
+
+    /* EMERALD PALETTE (Standard Primary) */
+    --color-primary-50: 236 253 245;
+    --color-primary-100: 209 250 229;
+    --color-primary-200: 167 243 208;
+    --color-primary-300: 110 231 183;
+    --color-primary-400: 52 211 153;
+    --color-primary-500: 16 185 129;
+    --color-primary-600: 5 150 105;
+    --color-primary-700: 4 120 87;
+    --color-primary-800: 6 95 70;
+    --color-primary-900: 6 78 59;
+  }
+
+  /* When theme is Blue, it inherits Dark mode but overrides the variables */
+  .theme-blue {
+    /* SLATE/BLUE PALETTE for Gray (Blue Theme) */
+    --color-gray-50: 248 250 252;
+    --color-gray-100: 241 245 249;
+    --color-gray-200: 226 232 240;
+    --color-gray-300: 203 213 225;
+    --color-gray-400: 148 163 184;
+    --color-gray-500: 100 116 139;
+    --color-gray-600: 71 85 105;
+    --color-gray-700: 51 65 85;
+    --color-gray-800: 30 41 59;
+    --color-gray-900: 15 23 42;
+
+    /* BLUE PALETTE for Primary */
+    --color-primary-50: 239 246 255;
+    --color-primary-100: 219 234 254;
+    --color-primary-200: 191 219 254;
+    --color-primary-300: 147 197 253;
+    --color-primary-400: 96 165 250;
+    --color-primary-500: 59 130 246;
+    --color-primary-600: 37 99 235;
+    --color-primary-700: 29 78 216;
+    --color-primary-800: 30 64 175;
+    --color-primary-900: 30 58 138;
+  }
+
+  .theme-pink {
+    /* ROSE PALETTE for Gray (Pink Theme) */
+    --color-gray-50: 255 241 242;
+    --color-gray-100: 255 228 230;
+    --color-gray-200: 254 205 211;
+    --color-gray-300: 253 164 175;
+    --color-gray-400: 251 113 133;
+    --color-gray-500: 244 63 94;
+    --color-gray-600: 225 29 72;
+    --color-gray-700: 190 18 60;
+    --color-gray-800: 159 18 57;
+    --color-gray-900: 76 5 25;
+
+    /* PINK PALETTE for Primary */
+    --color-primary-50: 253 242 248;
+    --color-primary-100: 252 231 243;
+    --color-primary-200: 251 207 232;
+    --color-primary-300: 249 168 212;
+    --color-primary-400: 244 114 182;
+    --color-primary-500: 236 72 153;
+    --color-primary-600: 219 39 119;
+    --color-primary-700: 190 24 93;
+    --color-primary-800: 157 23 77;
+    --color-primary-900: 131 24 67;
+  }
+
+  .theme-black {
+    /* TRUE BLACK PALETTE for Gray (OLED Black) */
+    --color-gray-50: 250 250 250;
+    --color-gray-100: 244 244 245;
+    --color-gray-200: 228 228 231;
+    --color-gray-300: 212 212 216;
+    --color-gray-400: 161 161 170;
+    --color-gray-500: 113 113 122;
+    --color-gray-600: 82 82 91;
+    --color-gray-700: 39 39 42;
+    --color-gray-800: 15 15 15; /* Darkest gray for cards */
+    --color-gray-900: 0 0 0; /* Pure black for bg */
+
+    /* KEEP EMERALD for Primary */
+    --color-primary-50: 236 253 245;
+    --color-primary-100: 209 250 229;
+    --color-primary-200: 167 243 208;
+    --color-primary-300: 110 231 183;
+    --color-primary-400: 52 211 153;
+    --color-primary-500: 16 185 129;
+    --color-primary-600: 5 150 105;
+    --color-primary-700: 4 120 87;
+    --color-primary-800: 6 95 70;
+    --color-primary-900: 6 78 59;
+  }
+
+  .theme-purple {
+    /* PURPLE PALETTE for Gray */
+    --color-gray-50: 250 245 255;
+    --color-gray-100: 243 232 255;
+    --color-gray-200: 233 213 255;
+    --color-gray-300: 216 180 254;
+    --color-gray-400: 192 132 252;
+    --color-gray-500: 168 85 247;
+    --color-gray-600: 147 51 234;
+    --color-gray-700: 126 34 206;
+    --color-gray-800: 59 7 100; /* Dark purple for cards */
+    --color-gray-900: 24 0 54; /* Pitch dark purple for bg */
+
+    /* VIOLET PALETTE for Primary */
+    --color-primary-50: 245 243 255;
+    --color-primary-100: 237 233 254;
+    --color-primary-200: 221 214 254;
+    --color-primary-300: 196 181 253;
+    --color-primary-400: 167 139 250;
+    --color-primary-500: 139 92 246;
+    --color-primary-600: 124 58 237;
+    --color-primary-700: 109 40 217;
+    --color-primary-800: 91 33 182;
+    --color-primary-900: 76 29 149;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
