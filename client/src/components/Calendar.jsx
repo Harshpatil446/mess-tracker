@@ -38,6 +38,7 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
 
   return (
     <div
+      id={isToday ? "today-card" : undefined}
       className={`relative rounded-2xl border p-2 sm:p-3 flex flex-col gap-2 transition-all duration-200 ${statusClass} ${
         isToday ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-gray-900 shadow-md' : (!isLocked && 'hover:shadow-lg hover:-translate-y-0.5')
       }`}
@@ -107,7 +108,7 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
           <div className="flex flex-col gap-1">
             <button
               onClick={() => handleMealToggle('breakfast')}
-              className="flex items-center gap-1.5 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+              className="flex items-center gap-1 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
             >
               <div className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-4 lg:h-4 rounded-md flex items-center justify-center border-2 transition-all flex-shrink-0 ${
                 meal?.breakfast 
@@ -116,12 +117,12 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
               }`}>
                 {meal?.breakfast && <Check size={12} strokeWidth={3} className="text-white" />}
               </div>
-              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-xs font-bold truncate ${meal?.breakfast ? "text-emerald-800 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Breakfast</span>
+              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-[11px] tracking-tight font-bold whitespace-nowrap ${meal?.breakfast ? "text-emerald-800 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Breakfast</span>
             </button>
 
             <button
               onClick={() => handleMealToggle('lunch')}
-              className="flex items-center gap-1.5 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+              className="flex items-center gap-1 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
             >
               <div className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-4 lg:h-4 rounded-md flex items-center justify-center border-2 transition-all flex-shrink-0 ${
                 meal?.lunch 
@@ -130,12 +131,12 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
               }`}>
                 {meal?.lunch && <Check size={12} strokeWidth={3} className="text-white" />}
               </div>
-              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-xs font-bold truncate ${meal?.lunch ? "text-emerald-800 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Lunch</span>
+              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-[11px] tracking-tight font-bold whitespace-nowrap ${meal?.lunch ? "text-emerald-800 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Lunch</span>
             </button>
 
             <button
               onClick={handleSkip}
-              className="flex items-center gap-1.5 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors mt-0.5 border-t border-gray-200/60 dark:border-gray-600/50"
+              className="flex items-center gap-1 group w-full p-1 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors mt-0.5 border-t border-gray-200/60 dark:border-gray-600/50"
             >
               <div className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-4 lg:h-4 rounded-md flex items-center justify-center border-2 transition-all flex-shrink-0 ${
                 (meal && !meal.breakfast && !meal.lunch) 
@@ -144,7 +145,7 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
               }`}>
                 {(meal && !meal.breakfast && !meal.lunch) && <X size={12} strokeWidth={3} className="text-white" />}
               </div>
-              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-xs font-bold truncate ${(meal && !meal.breakfast && !meal.lunch) ? "text-red-800 dark:text-red-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Skip</span>
+              <span className={`text-[10px] sm:text-xs lg:text-[10px] xl:text-[11px] tracking-tight font-bold whitespace-nowrap ${(meal && !meal.breakfast && !meal.lunch) ? "text-red-800 dark:text-red-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>Skip</span>
             </button>
 
             {/* Done button to finish editing without skipping */}
@@ -163,8 +164,21 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate }) 
 
 export const Calendar = ({ messCycle, onMealUpdate }) => {
   const [currentDate, setCurrentDate] = useState(
-    messCycle?.startDate ? new Date(messCycle.startDate) : new Date()
+    messCycle?.status === 'completed' && messCycle?.startDate 
+      ? new Date(messCycle.startDate) 
+      : new Date()
   );
+
+  // Automatically scroll to today's date when calendar loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const todayCard = document.getElementById('today-card');
+      if (todayCard) {
+        todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentDate);

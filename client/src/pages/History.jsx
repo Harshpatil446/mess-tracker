@@ -3,13 +3,17 @@ import { format } from 'date-fns';
 import * as api from '../services/api';
 import { calculateConsumedDays, calculateSkippedDays } from '../utils/calculations';
 import { Calendar as CalendarComponent } from '../components/Calendar';
-import { History as HistoryIcon, ChevronDown, ChevronUp, Trash2, Upload } from 'lucide-react';
+import { ReceiptModal } from '../components/ReceiptModal';
+import { useAuth } from '../hooks/useAuth';
+import { History as HistoryIcon, ChevronDown, ChevronUp, Trash2, Upload, Download, Receipt } from 'lucide-react';
 
 export const History = () => {
+  const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [receiptCycle, setReceiptCycle] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -70,6 +74,67 @@ export const History = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setLoading(true);
+      // Fetch both history and active
+      const historyCycles = await api.getMessHistory();
+      let activeCycle = null;
+      try {
+        activeCycle = await api.getCurrentMess();
+      } catch (e) { 
+        // ignore if no active cycle
+      }
+
+      const allCycles = [...historyCycles];
+      if (activeCycle) {
+        allCycles.push(activeCycle);
+      }
+
+      const formattedCycles = allCycles.map(cycle => {
+        const mealsObj = {};
+        if (cycle.meals) {
+          cycle.meals.forEach(m => {
+            mealsObj[m.date] = {
+              breakfast: m.breakfast,
+              lunch: m.lunch
+            };
+          });
+        }
+
+        return {
+          id: cycle._id,
+          type: cycle.planType,
+          startDate: cycle.startDate,
+          paymentDate: cycle.paymentDate,
+          meals: mealsObj
+        };
+      });
+
+      const exportData = {
+        app: "mess-tiffin-tracker",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        store: {
+          cycles: formattedCycles,
+          activeId: activeCycle ? activeCycle._id : null
+        }
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const downloadNode = document.createElement('a');
+      downloadNode.setAttribute("href", dataStr);
+      downloadNode.setAttribute("download", `mess-tracker-backup-${format(new Date(), 'yyyy-MM-dd')}.json`);
+      document.body.appendChild(downloadNode);
+      downloadNode.click();
+      downloadNode.remove();
+    } catch (err) {
+      alert("Failed to export data: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -95,21 +160,31 @@ export const History = () => {
       <div className="flex justify-between items-center px-1 mb-6">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 transition-colors">Mess History</h2>
         
-        <div>
-          <input 
-            type="file" 
-            accept=".json" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleImport}
-          />
+        <div className="flex gap-2">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-sm font-medium"
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
           >
-            <Upload size={16} />
-            <span>Import</span>
+            <Download size={16} />
+            <span>Export</span>
           </button>
+          
+          <div>
+            <input 
+              type="file" 
+              accept=".json" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleImport}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-sm font-medium"
+            >
+              <Upload size={16} />
+              <span>Import</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -164,6 +239,16 @@ export const History = () => {
                 </div>
                 <div className="flex items-center gap-1 sm:gap-3">
                   <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReceiptCycle(cycle);
+                    }}
+                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                    title="View Receipt"
+                  >
+                    <Receipt size={18} />
+                  </button>
+                  <button
                     onClick={(e) => handleDelete(cycle._id, e)}
                     className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     title="Delete History"
@@ -177,15 +262,59 @@ export const History = () => {
               </div>
             </div>
 
-            {/* Expanded Calendar View */}
+            {/* Expanded Table View */}
             {isExpanded && (
               <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 sm:p-6 transition-colors">
-                <CalendarComponent messCycle={cycle} onMealUpdate={handleMealUpdate} />
+                {cycle.meals && cycle.meals.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
+                      <thead className="bg-gray-100 dark:bg-gray-800">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Date</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-center">Breakfast</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-center">Lunch</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {[...cycle.meals].sort((a, b) => new Date(a.date) - new Date(b.date)).map((meal) => (
+                          <tr key={meal.date} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                              {format(new Date(meal.date), 'dd MMM yyyy')}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {meal.breakfast ? (
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">✅</span>
+                              ) : (
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400">❌</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {meal.lunch ? (
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">✅</span>
+                              ) : (
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400">❌</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">No meals logged for this cycle.</div>
+                )}
               </div>
             )}
           </div>
         );
       })}
+
+      <ReceiptModal 
+        isOpen={!!receiptCycle} 
+        onClose={() => setReceiptCycle(null)} 
+        cycle={receiptCycle}
+        user={user}
+      />
     </div>
   );
 };

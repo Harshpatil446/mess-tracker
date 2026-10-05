@@ -138,3 +138,22 @@
     @apply bg-gray-50 text-gray-900;
   }
 }
+
+/* Print Styles for Receipt Modal */
+@media print {
+  body.printing-receipt {
+    visibility: hidden;
+  }
+  
+  body.printing-receipt .receipt-modal-container {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  body.printing-receipt .receipt-modal-container * {
+    visibility: visible;
+  }
+}

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format, addDays } from 'date-fns';
+import { Upload } from 'lucide-react';
 
-export const MessPlanForm = ({ onSubmit, loading }) => {
+export const MessPlanForm = ({ onSubmit, onImport, loading }) => {
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     planType: 'full',
     startDate: format(new Date(), 'yyyy-MM-dd'),
@@ -62,11 +64,35 @@ export const MessPlanForm = ({ onSubmit, loading }) => {
           </div>
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div className="pt-4 flex flex-col sm:flex-row justify-end items-center gap-3">
+          {onImport && (
+            <div className="w-full sm:w-auto flex justify-end">
+              <input 
+                type="file" 
+                accept=".json" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={(e) => {
+                  onImport(e);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-gray-500 disabled:opacity-50 transition-colors"
+              >
+                <Upload size={18} />
+                <span>Import JSON</span>
+              </button>
+            </div>
+          )}
+          
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-emerald-500 disabled:opacity-50 transition-colors"
+            className="w-full sm:w-auto px-6 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-emerald-500 disabled:opacity-50 transition-colors"
           >
             {loading ? 'Creating...' : 'Create Plan'}
           </button>

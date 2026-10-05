@@ -9,13 +9,17 @@ import {
   calculateSkippedDays,
   calculateEndDate
 } from '../utils/calculations';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, Wallet } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, Wallet, Receipt } from 'lucide-react';
+import { ReceiptModal } from '../components/ReceiptModal';
+import { useAuth } from '../hooks/useAuth';
 
 export const Dashboard = () => {
+  const { user } = useAuth();
   const [messCycle, setMessCycle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const fetchCurrentMess = async () => {
     try {
@@ -42,6 +46,23 @@ export const Dashboard = () => {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create plan');
     } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setActionLoading(true);
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await api.importMessCycles(data);
+      alert('Import successful!');
+      fetchCurrentMess();
+    } catch (err) {
+      alert('Failed to import: ' + err.message);
       setActionLoading(false);
     }
   };
@@ -85,7 +106,7 @@ export const Dashboard = () => {
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4 text-sm transition-colors">{error}</div>
         )}
-        <MessPlanForm onSubmit={handleCreatePlan} loading={actionLoading} />
+        <MessPlanForm onSubmit={handleCreatePlan} onImport={handleImport} loading={actionLoading} />
       </div>
     );
   }
@@ -159,18 +180,34 @@ export const Dashboard = () => {
           </div>
         </div>
         
-        <button
-          onClick={handleCompletePlan}
-          disabled={actionLoading}
-          className="whitespace-nowrap px-4 py-2 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/40 transition-colors"
-        >
-          {actionLoading ? 'Processing...' : 'Mark as Completed'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowReceipt(true)}
+            className="flex-1 sm:flex-none whitespace-nowrap px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex justify-center items-center gap-2"
+          >
+            <Receipt size={16} />
+            <span className="hidden sm:inline">Receipt</span>
+          </button>
+          
+          <button
+            onClick={handleCompletePlan}
+            disabled={actionLoading}
+            className="flex-1 sm:flex-none whitespace-nowrap px-4 py-2 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/40 transition-colors"
+          >
+            {actionLoading ? 'Processing...' : 'Mark as Completed'}
+          </button>
+        </div>
       </div>
 
       {/* Calendar */}
       <Calendar messCycle={messCycle} onMealUpdate={handleMealUpdate} />
       
+      <ReceiptModal 
+        isOpen={showReceipt} 
+        onClose={() => setShowReceipt(false)} 
+        cycle={messCycle}
+        user={user}
+      />
     </div>
   );
 };
