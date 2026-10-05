@@ -13,14 +13,14 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, mobile } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !mobile) {
       return res.status(400).json({ message: "Please add all fields" });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ mobile });
 
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
@@ -29,15 +29,14 @@ const registerUser = async (req, res) => {
     // Create user
     const user = await User.create({
       name,
-      email,
-      password,
+      mobile,
     });
 
     if (user) {
       res.status(201).json({
         _id: user.id,
         name: user.name,
-        email: user.email,
+        mobile: user.mobile,
         token: generateToken(user._id),
       });
     } else {
@@ -53,16 +52,16 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { mobile } = req.body;
 
-    // Check for user email
-    const user = await User.findOne({ email });
+    // Check for user mobile
+    const user = await User.findOne({ mobile });
 
-    if (user && (await user.matchPassword(password))) {
+    if (user) {
       res.json({
         _id: user.id,
         name: user.name,
-        email: user.email,
+        mobile: user.mobile,
         token: generateToken(user._id),
       });
     } else {

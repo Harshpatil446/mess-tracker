@@ -39,7 +39,7 @@ connectDB().then(() => {
           
           user.pushSubscriptions.forEach(sub => {
             webpush.sendNotification(sub, payload).catch(err => {
-              console.error("Push error for user", user.email, err);
+              console.error("Push error for user", user.mobile, err);
             });
           });
         }
