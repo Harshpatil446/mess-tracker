@@ -214,6 +214,17 @@ const updateMeal = async (req, res) => {
       // Update existing record
       if (breakfast !== undefined) messCycle.meals[mealIndex].breakfast = breakfast;
       if (lunch !== undefined) messCycle.meals[mealIndex].lunch = lunch;
+      
+      // If both are false after update
+      if (!messCycle.meals[mealIndex].breakfast && !messCycle.meals[mealIndex].lunch) {
+        // If they explicitly skipped (sent both as false)
+        if (breakfast === false && lunch === false) {
+          // Keep it as a skipped day
+        } else {
+          // They toggled one field to false, leaving both false -> Clear the meal entry
+          messCycle.meals.splice(mealIndex, 1);
+        }
+      }
     } else {
       // Create new record
       messCycle.meals.push({
