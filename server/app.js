@@ -16,6 +16,19 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 
 const app = express();
 
+const connectDB = require("./config/db");
+
+// Connect to DB before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("DB Connection Error:", err);
+    res.status(500).json({ message: "Database connection failed", error: err.message });
+  }
+});
+
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",

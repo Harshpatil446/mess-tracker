@@ -1,6 +1,8 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
+mongoose.set('bufferCommands', false);
+
 let cached = global.mongoose;
 
 if (!cached) {
@@ -12,11 +14,17 @@ const connectDB = async () => {
     return cached.conn;
   }
 
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI environment variable is missing!");
+  }
+
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds instead of 30s
     };
 
+    console.log("Attempting to connect to MongoDB...");
     cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((mongoose) => {
       console.log(`MongoDB Connected: ${mongoose.connection.host}`);
       return mongoose;
@@ -27,9 +35,8 @@ const connectDB = async () => {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    console.error(`Error: ${e.message}`);
-    // Do not process.exit(1) in serverless, just throw
-    throw e;
+    console.error(`MongoDB Connection Error: ${e.message}`);
+    throw new Error(`MongoDB Connection Failed: ${e.message}. Please check if your Vercel IP (0.0.0.0/0) is allowed in MongoDB Atlas Network Access.`);
   }
 
   return cached.conn;
