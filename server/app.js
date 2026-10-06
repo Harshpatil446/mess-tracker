@@ -18,9 +18,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/api/auth", authRoutes);
 app.use("/api/mess", messRoutes);
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/cron", require("./routes/cronRoutes"));
 
-// Serve Frontend
-if (process.env.NODE_ENV === "production") {
+// Serve Frontend (only if not running on Vercel serverless)
+if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
   app.use(express.static(path.join(__dirname, "../client/dist")));
 
   app.get("*", (req, res) =>
