@@ -35,3 +35,4 @@ A full-stack MERN application for tracking mess/tiffin plans, meal consumption, 
 
 ## Folder Structure
 Follows a clean, beginner-friendly MVP structure for both client and server.
+ 
