@@ -1,8 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const webpush = require("web-push");
 const authRoutes = require("./routes/authRoutes");
 const messRoutes = require("./routes/messRoutes");
+
+// Initialize Web Push VAPID Details
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    "mailto:test@example.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const app = express();
 

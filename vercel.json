@@ -3,6 +3,10 @@
   "buildCommand": "npm run build --prefix client",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
@@ -10,7 +14,7 @@
   "crons": [
     {
       "path": "/api/cron/send-notifications",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
