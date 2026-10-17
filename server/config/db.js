@@ -36,6 +36,7 @@ const connectDB = async () => {
     serverSelectionTimeoutMS: 5000,
     maxPoolSize: 10,
     socketTimeoutMS: 45000,
+    autoIndex: process.env.NODE_ENV !== "production",
   };
 
   if (!cached.promise || mongoose.connection.readyState === 0) {
