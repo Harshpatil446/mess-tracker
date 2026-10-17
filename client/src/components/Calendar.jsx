@@ -13,23 +13,15 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Check, X, Edit2, Lock, Coffee, Utensils, CheckCircle2, XCircle } from 'lucide-react';
 
-// Safely parse date strings (e.g., YYYY-MM-DD or ISO strings) into local Date without UTC day shift
-const parseLocalDate = (dateVal) => {
-  if (!dateVal) return null;
-  if (dateVal instanceof Date) return dateVal;
-  const parts = String(dateVal).split('T')[0].split('-');
-  if (parts.length === 3) {
-    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  }
-  return new Date(dateVal);
-};
+import { parseLocalDate } from '../utils/calculations';
 
 const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate, cycleStatus }) => {
   const parsedStart = parseLocalDate(cycleStartDate);
   const isBeforeStart = parsedStart ? isBefore(day, startOfDay(parsedStart)) : false;
+  const isUpcoming = isAfter(startOfDay(day), startOfDay(new Date()));
   
-  // Only lock if cycle is completed (history) or date is before cycle start
-  const isLocked = cycleStatus === 'completed' || isBeforeStart;
+  // Lock if cycle is completed (history), date is before cycle start, or date is in the future
+  const isLocked = cycleStatus === 'completed' || isBeforeStart || isUpcoming;
 
   // Edit mode toggle (clean summary by default, checkboxes when editing)
   const [isEditing, setIsEditing] = useState(false);
@@ -51,7 +43,7 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate, cy
   };
 
   const statusClass = useMemo(() => {
-    if (isLocked) return "border-gray-100 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/40 opacity-50"; 
+    if (isLocked && !meal) return "border-gray-100 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/40 opacity-50"; 
     if (!meal) return "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600";
     if (meal.breakfast && meal.lunch) return "border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20";
     if (meal.breakfast || meal.lunch) return "border-amber-200 dark:border-amber-900/50 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20";
@@ -61,15 +53,18 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate, cy
   return (
     <div
       id={isToday ? "today-card" : undefined}
+      title={isUpcoming ? "Upcoming day (locked)" : isBeforeStart ? "Before plan start" : undefined}
       className={`relative rounded-2xl border p-2 sm:p-3 flex flex-col justify-between min-h-[110px] sm:min-h-[120px] transition-all duration-200 ${statusClass} ${
-        isToday ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-gray-900 shadow-md' : (!isLocked && 'hover:shadow-md hover:-translate-y-0.5')
+        isToday 
+          ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-gray-900 shadow-md' 
+          : (!isLocked ? 'hover:shadow-md hover:-translate-y-0.5' : 'cursor-not-allowed select-none')
       }`}
     >
       {/* Top Header: Day Number, Day Name, Edit Button */}
       <div className="flex items-center justify-between mb-1 z-10">
         <div className="flex items-center gap-1.5">
           <span className={`text-base sm:text-lg font-bold ${
-            isToday ? 'text-emerald-600 dark:text-emerald-400' : (isLocked ? 'text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-200')
+            isToday ? 'text-emerald-600 dark:text-emerald-400' : (isLocked && !meal ? 'text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-200')
           }`}>
             {format(day, 'd')}
           </span>
@@ -91,6 +86,13 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate, cy
           >
             <Edit2 size={13} />
           </button>
+        )}
+
+        {/* Lock indicator for locked days with existing meals */}
+        {isLocked && meal && (
+          <span title="Locked" className="p-1 text-gray-400 dark:text-gray-500">
+            <Lock size={12} />
+          </span>
         )}
       </div>
 
@@ -127,6 +129,11 @@ const DayCard = ({ day, dateStr, meal, isToday, onMealUpdate, cycleStartDate, cy
               <div className="flex flex-col items-center opacity-75">
                 <Lock size={16} className="text-gray-400 dark:text-gray-500 mb-1" />
                 <span className="text-[10px] sm:text-xs font-medium text-gray-400 dark:text-gray-500">Pre-Plan</span>
+              </div>
+            ) : isUpcoming ? (
+              <div className="flex flex-col items-center opacity-75">
+                <Lock size={16} className="text-gray-400 dark:text-gray-500 mb-1" />
+                <span className="text-[10px] sm:text-xs font-medium text-gray-400 dark:text-gray-500">Upcoming</span>
               </div>
             ) : (
               <button

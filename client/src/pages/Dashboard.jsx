@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { format } from 'date-fns';
+import { format, isAfter, startOfDay } from 'date-fns';
 import * as api from '../services/api';
 import { MessPlanForm } from '../components/MessPlanForm';
 import { Calendar } from '../components/Calendar';
@@ -7,7 +7,8 @@ import {
   calculateConsumedDays,
   calculateRemainingDays,
   calculateSkippedDays,
-  calculateEndDate
+  calculateEndDate,
+  parseLocalDate
 } from '../utils/calculations';
 import { Calendar as CalendarIcon, CheckCircle2, Clock, Wallet, Receipt, AlertCircle, Check } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -89,6 +90,13 @@ export const Dashboard = () => {
   const handleMealUpdate = async (dateStr, updates) => {
     const currentCycle = messCycleRef.current;
     if (!currentCycle) return;
+
+    // Guard against modifying upcoming days
+    const targetDate = parseLocalDate(dateStr);
+    if (targetDate && isAfter(startOfDay(targetDate), startOfDay(new Date()))) {
+      showToast('Upcoming days are locked', 'error');
+      return;
+    }
 
     const previousMeals = currentCycle.meals ? [...currentCycle.meals] : [];
 

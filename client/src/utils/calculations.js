@@ -71,3 +71,15 @@ export const calculateEndDate = (startDate, planDays, meals) => {
   
   return currentDay;
 };
+
+// Safely parse date strings (e.g., YYYY-MM-DD or ISO strings) into local Date without UTC day shift
+export const parseLocalDate = (dateVal) => {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) return dateVal;
+  const parts = String(dateVal).split('T')[0].split('-');
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  }
+  return new Date(dateVal);
+};
+

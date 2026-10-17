@@ -232,6 +232,16 @@ const updateMeal = async (req, res) => {
         return res.status(404).json({ message: "Mess cycle not found" });
       }
 
+      if (messCycle.status === "completed") {
+        return res.status(400).json({ message: "Cannot modify completed mess cycle" });
+      }
+
+      // Prevent modifying upcoming days (allowing 36h buffer for global time zones)
+      const targetTime = new Date(date + "T00:00:00Z").getTime();
+      if (!isNaN(targetTime) && targetTime - Date.now() > 36 * 60 * 60 * 1000) {
+        return res.status(400).json({ message: "Cannot update meals for upcoming days" });
+      }
+
       // Collect existing meal entries for this date (handles legacy duplicate cleanup)
       const existingMeals = messCycle.meals.filter((m) => m.date === date);
       const existingBreakfast = existingMeals.some((m) => m.breakfast);
