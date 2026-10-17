@@ -42,6 +42,30 @@ const getCurrentMessCycle = async (req, res) => {
       return res.status(404).json({ message: "No active mess cycle found" });
     }
 
+    // Defensive deduplication to guarantee data cleanliness
+    if (messCycle.meals && messCycle.meals.length > 0) {
+      const seen = new Map();
+      let hasDupes = false;
+      for (const meal of messCycle.meals) {
+        if (seen.has(meal.date)) {
+          hasDupes = true;
+          const curr = seen.get(meal.date);
+          curr.breakfast = curr.breakfast || meal.breakfast;
+          curr.lunch = curr.lunch || meal.lunch;
+        } else {
+          seen.set(meal.date, {
+            date: meal.date,
+            breakfast: meal.breakfast,
+            lunch: meal.lunch,
+          });
+        }
+      }
+      if (hasDupes) {
+        messCycle.meals = Array.from(seen.values());
+        await messCycle.save();
+      }
+    }
+
     res.status(200).json(messCycle);
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
@@ -193,52 +217,56 @@ const importMessCycle = async (req, res) => {
 // @route   PATCH /api/mess/:id/meals/:date
 // @access  Private
 const updateMeal = async (req, res) => {
-  try {
-    const { breakfast, lunch } = req.body;
-    const { id, date } = req.params;
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const { breakfast, lunch } = req.body;
+      const { id, date } = req.params;
 
-    const messCycle = await MessCycle.findById(id);
-
-    if (!messCycle) {
-      return res.status(404).json({ message: "Mess cycle not found" });
-    }
-
-    if (messCycle.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: "User not authorized" });
-    }
-
-    // Check if meal record for the date already exists
-    const mealIndex = messCycle.meals.findIndex((meal) => meal.date === date);
-
-    if (mealIndex !== -1) {
-      // Update existing record
-      if (breakfast !== undefined) messCycle.meals[mealIndex].breakfast = breakfast;
-      if (lunch !== undefined) messCycle.meals[mealIndex].lunch = lunch;
-      
-      // If both are false after update
-      if (!messCycle.meals[mealIndex].breakfast && !messCycle.meals[mealIndex].lunch) {
-        // If they explicitly skipped (sent both as false)
-        if (breakfast === false && lunch === false) {
-          // Keep it as a skipped day
-        } else {
-          // They toggled one field to false, leaving both false -> Clear the meal entry
-          messCycle.meals.splice(mealIndex, 1);
-        }
-      }
-    } else {
-      // Create new record
-      messCycle.meals.push({
-        date,
-        breakfast: breakfast !== undefined ? breakfast : false,
-        lunch: lunch !== undefined ? lunch : false,
+      const messCycle = await MessCycle.findOne({
+        _id: id,
+        user: req.user.id,
       });
+
+      if (!messCycle) {
+        return res.status(404).json({ message: "Mess cycle not found" });
+      }
+
+      // Collect existing meal entries for this date (handles legacy duplicate cleanup)
+      const existingMeals = messCycle.meals.filter((m) => m.date === date);
+      const existingBreakfast = existingMeals.some((m) => m.breakfast);
+      const existingLunch = existingMeals.some((m) => m.lunch);
+
+      // Determine updated values
+      const newBreakfast = breakfast !== undefined ? Boolean(breakfast) : existingBreakfast;
+      const newLunch = lunch !== undefined ? Boolean(lunch) : existingLunch;
+
+      // Filter out all existing entries for this date
+      messCycle.meals = messCycle.meals.filter((m) => m.date !== date);
+
+      // Check if this was an explicit skip request
+      const isExplicitSkip = breakfast === false && lunch === false;
+
+      // Keep record if a meal is active or if user explicitly requested a skip
+      if (newBreakfast || newLunch || isExplicitSkip) {
+        messCycle.meals.push({
+          date,
+          breakfast: newBreakfast,
+          lunch: newLunch,
+        });
+      }
+
+      await messCycle.save();
+
+      return res.status(200).json(messCycle);
+    } catch (error) {
+      if ((error.name === "VersionError" || error.code === 11000) && retries > 1) {
+        retries--;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        continue;
+      }
+      return res.status(500).json({ message: "Server Error", error: error.message });
     }
-
-    await messCycle.save();
-
-    res.status(200).json(messCycle);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 

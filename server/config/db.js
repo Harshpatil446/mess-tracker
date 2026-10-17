@@ -1,7 +1,15 @@
 require("dotenv").config();
-const mongoose = require("mongoose");
+const dns = require("dns");
+try {
+  // Use public DNS if running in environments where local SRV resolution is blocked
+  if (process.platform === "win32") {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  }
+} catch (e) {
+  // Ignore DNS setServers error
+}
 
-mongoose.set('bufferCommands', false);
+const mongoose = require("mongoose");
 
 let cached = global.mongoose;
 
@@ -10,24 +18,31 @@ if (!cached) {
 }
 
 const connectDB = async () => {
-  if (cached.conn) {
-    return cached.conn;
+  // 1: connected, 2: connecting
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (cached.promise && mongoose.connection.readyState === 2) {
+    return cached.promise;
   }
 
   if (!process.env.MONGO_URI) {
     throw new Error("MONGO_URI environment variable is missing!");
   }
 
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds instead of 30s
-    };
+  const opts = {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 10,
+    socketTimeoutMS: 45000,
+  };
 
+  if (!cached.promise || mongoose.connection.readyState === 0) {
     console.log("Attempting to connect to MongoDB...");
-    cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((mongoose) => {
-      console.log(`MongoDB Connected: ${mongoose.connection.host}`);
-      return mongoose;
+    cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((m) => {
+      console.log(`MongoDB Connected: ${m.connection.host}`);
+      return m.connection;
     });
   }
 
@@ -35,8 +50,9 @@ const connectDB = async () => {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    cached.conn = null;
     console.error(`MongoDB Connection Error: ${e.message}`);
-    throw new Error(`MongoDB Connection Failed: ${e.message}. Please check if your Vercel IP (0.0.0.0/0) is allowed in MongoDB Atlas Network Access.`);
+    throw new Error(`MongoDB Connection Failed: ${e.message}. Please check your database connection.`);
   }
 
   return cached.conn;
